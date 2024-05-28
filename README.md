@@ -5,3 +5,4 @@ To change the length of the stress arrows, change the ratio value on:
 * HTML: Line 69
 
 Note: Variable theta does not affect visualization.
+**Python code is OUTDATED**.
