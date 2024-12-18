@@ -39,314 +39,106 @@
             width: 80px;
             margin-left: 10px;
         }
-        #tutorial {
-            width: 90%;
-            max-width: 600px;
-            margin-top: 20px;
-            background-color: #f9f9f9;
-            border: 1px solid #ccc;
-            padding: 15px;
-            border-radius: 8px;
-        }
     </style>
 </head>
 <body>
 
 <h1>Mohr's Circle Educational Tool</h1>
-<p>Adjust the stress components using the sliders or input boxes and observe the changes in Mohr's Circle and the stress square diagram.</p>
+<p>Adjust the stress components using the sliders or input boxes and observe the changes in Mohr's Circle.</p>
 
 <div id="container">
-    <div id="mohrs-circle" style="width: 60%; height: 700px;"></div>
-    <div id="stress-square" style="width: 45%; height: 700px;"></div>
+    <div id="mohrs-circle" style="width: 60%; height: 500px;"></div>
 </div>
 
 <div id="controls">
     <div class="control-group">
         <label for="sigma_x">σ<sub>x</sub>:</label>
-        <input type="range" id="sigma_x" name="sigma_x" min="-100" max="100" value="30" step="0.1">
-        <input type="number" id="sigma_x_val" value="30" step="0.1">
+        <input type="range" id="sigma_x" name="sigma_x" min="-100" max="100" value="30" step="1">
+        <input type="number" id="sigma_x_val" value="30" step="1">
     </div>
     <div class="control-group">
         <label for="sigma_y">σ<sub>y</sub>:</label>
-        <input type="range" id="sigma_y" name="sigma_y" min="-100" max="100" value="-20" step="0.1">
-        <input type="number" id="sigma_y_val" value="-20" step="0.1">
+        <input type="range" id="sigma_y" name="sigma_y" min="-100" max="100" value="-20" step="1">
+        <input type="number" id="sigma_y_val" value="-20" step="1">
     </div>
     <div class="control-group">
         <label for="tau_xy">τ<sub>xy</sub>:</label>
-        <input type="range" id="tau_xy" name="tau_xy" min="-100" max="100" value="10" step="0.1">
-        <input type="number" id="tau_xy_val" value="10" step="0.1">
+        <input type="range" id="tau_xy" name="tau_xy" min="-100" max="100" value="10" step="1">
+        <input type="number" id="tau_xy_val" value="10" step="1">
     </div>
-    <div class="control-group">
-        <label for="theta">θ (degrees):</label>
-        <input type="number" id="theta" name="theta" value="34" step="0.5">
-    </div>
-</div>
-
-<div id="tutorial">
-    <h2>Tutorial</h2>
-    <p>Follow these steps to construct Mohr's Circle:</p>
-    <ol>
-        <li>Input the normal stresses (σ<sub>x</sub> and σ<sub>y</sub>) and shear stress (τ<sub>xy</sub>).</li>
-        <li>Observe the changes in the Mohr's Circle and the stress square diagram.</li>
-        <li>Learn how to interpret the results from the visualizations.</li>
-    </ol>
-    <p><strong>Example:</strong> Set σ<sub>x</sub> = 30, σ<sub>y</sub> = -20, and τ<sub>xy</sub> = 10. Notice how the circle and square change to represent these values.</p>
 </div>
 
 <script>
-function plotMohrsCircle(sigma_x, sigma_y, tau_xy, degree) {
-    const center = (sigma_x + sigma_y) / 2.0;
-    const radius = Math.sqrt(((sigma_x - sigma_y) / 2.0)**2 + tau_xy**2);
-    const theta = [...Array(100).keys()].map(i => 2 * Math.PI * i / 99);
+function plotMohrsCircle(sigma_x, sigma_y, tau_xy) {
+    // Calculate circle center and radius
+    const center = (sigma_x + sigma_y) / 2;
+    const radius = Math.sqrt(((sigma_x - sigma_y) / 2) ** 2 + tau_xy ** 2);
+
+    if (isNaN(center) || isNaN(radius)) {
+        console.error("Invalid inputs for Mohr's Circle.");
+        return;
+    }
+
+    // Generate circle points
+    const theta = Array.from({ length: 100 }, (_, i) => (2 * Math.PI * i) / 99);
     const circle_x = theta.map(t => center + radius * Math.cos(t));
     const circle_y = theta.map(t => radius * Math.sin(t));
 
-    const init_deg = Math.atan2(-tau_xy, sigma_x - center);
-    const plot_deg = init_deg + 2 * degree / 180 * Math.PI;
-    const rotate_x = center + radius * Math.cos(plot_deg);
-    const rotate_x1 = center - radius * Math.cos(plot_deg);
-    const rotate_y = radius * Math.sin(plot_deg);
+    // Prepare data for Plotly
+    const data = [
+        {
+            x: circle_x,
+            y: circle_y,
+            mode: 'lines',
+            name: "Mohr's Circle",
+        },
+        {
+            x: [sigma_x, sigma_y],
+            y: [-tau_xy, tau_xy],
+            mode: 'markers',
+            name: 'Stress Points',
+            marker: { color: 'red', size: 10 },
+        },
+    ];
 
-    const data = [{
-        x: circle_x,
-        y: circle_y,
-        mode: 'lines',
-        name: "Mohr's Circle"
-    }, {
-        x: [sigma_x, sigma_y],
-        y: [-tau_xy, tau_xy],
-        mode: 'markers+lines',
-        type: 'scatter',
-        name: 'Principal Stress Points',
-        marker: {color: 'red'}
-    }, {
-        x: [center, center],
-        y: [radius, -radius],
-        mode: 'markers+lines',
-        type: 'scatter',
-        name: 'Shear Stress Points',
-        marker: {color: 'blue'}
-    }, {
-        x: [rotate_x, rotate_x1],
-        y: [rotate_y, -rotate_y],
-        mode: 'markers+lines',
-        type: 'scatter',
-        name: 'Transformed Stress Points',
-        marker: {color: 'green'}
-    }, {
-        x: [center-radius, center+radius],
-        y: [0, 0],
-        mode: 'markers+lines',
-        type: 'scatter',
-        showlegend: false,
-        name: '',
-        marker: {color: 'black'}
-    }];
-
+    // Layout for the plot
     const layout = {
-        title: "Mohr's Circle Construction",
-        xaxis: {title: 'Normal Stress (σ)'},
-        yaxis: {title: 'Shear Stress (τ)', scaleanchor: 'x', scaleratio: 1},
-        showlegend: true, legend: {xanchor:"right", yanchor:0.8},
-        annotations: [
-            {
-                x: center, y: radius,
-                text: 'Max Shear: ' + radius.toFixed(2),
-                arrowhead: 4, ax: 0, ay: -60
-            },
-            {
-                x: center, y: -radius,
-                text: 'Min Shear: ' + (-radius).toFixed(2),
-                arrowhead: 4, ax: 0, ay: 60
-            },
-            {
-                x: center + radius, y: 0,
-                text: 'Max Prin: ' + (center + radius).toFixed(2), 
-                arrowhead: 4, ax: 80, ay: 10
-            },
-            {
-                x: center - radius, y: 0,
-                text: 'Min Prin: ' + (center - radius).toFixed(2),
-                arrowhead: 4, ax: -80, ay: -10
-            },
-            {
-                x: sigma_x, y: -tau_xy,
-                text:  ' X: ' + '(' + sigma_x + ', ' + (-tau_xy) + ') ',
-                arrowhead: 4, bgcolor: 'white', bordercolor: 'black'
-            },
-            {
-                x: sigma_y, y: tau_xy,
-                text: ' Y: ' + '(' + sigma_y + ', ' + tau_xy + ') ',
-                arrowhead: 4, bgcolor: 'white', bordercolor: 'black'
-            },
-            {
-                x: rotate_x, y:rotate_y,
-                text: ' X\': ' + '(' + rotate_x.toFixed(2) + ', ' + rotate_y.toFixed(2) + ') ',
-                arrowhead: 4, bgcolor: 'white', bordercolor: 'black'
-            },
-            {
-                x: rotate_x1, y:-rotate_y,
-                text: ' Y\': ' + '(' + rotate_x1.toFixed(2) + ', ' + (-rotate_y).toFixed(2) + ') ',
-                arrowhead: 4, bgcolor: 'white', bordercolor: 'black'
-            }
-        ]
+        title: "Mohr's Circle",
+        xaxis: { title: 'Normal Stress (σ)', zeroline: true },
+        yaxis: { title: 'Shear Stress (τ)', zeroline: true, scaleanchor: 'x', scaleratio: 1 },
     };
 
+    // Render the plot
     Plotly.newPlot('mohrs-circle', data, layout);
-}
-
-function plotStressSquare(sigma_x, sigma_y, tau_xy) {
-    const ratio = 0.0075;
-    const sx = sigma_x * ratio;
-    const sy = sigma_y * ratio;
-    const txy = tau_xy * ratio;
-
-    const square = {
-        type: 'scatter',
-        x: [0.5, 1.5, 1.5, 0.5, 0.5],
-        y: [0.5, 0.5, 1.5, 1.5, 0.5],
-        mode: 'lines',
-        name: 'Square'
-    };
-
-    const layout = {
-        title: "Stress Square",
-        xaxis: {range: [0, 2]},
-        yaxis: {range: [0, 2], scaleanchor: 'x', scaleratio: 1},
-        showlegend: false,
-        annotations: [
-            // Arrows for sigma_x
-            {
-                ax: 0.25 + sx, ay: 1,
-                axref: 'x', ayref: 'y',
-                x: 0.25 - sx, y: 1,
-                xref: 'x', yref: 'y',
-                showarrow: true,
-                arrowhead: 2,
-                arrowcolor: 'red'
-            },
-            {
-                ax: 1.75 - sx, ay: 1,
-                axref: 'x', ayref: 'y',
-                x: 1.75 + sx, y: 1,
-                xref: 'x', yref: 'y',
-                showarrow: true,
-                arrowhead: 2,
-                arrowcolor: 'red'
-            },
-            // Arrows for sigma_y
-            {
-                ax: 1, ay: 0.25 + sy,
-                axref: 'x', ayref: 'y',
-                x: 1, y: 0.25 - sy,
-                xref: 'x', yref: 'y',
-                showarrow: true,
-                arrowhead: 2,
-                arrowcolor: 'purple'
-            },
-            {
-                ax: 1, ay: 1.75 - sy,
-                axref: 'x', ayref: 'y',
-                x: 1, y: 1.75 + sy,
-                xref: 'x', yref: 'y',
-                showarrow: true,
-                arrowhead: 2,
-                arrowcolor: 'purple'
-            },
-            // Arrows for tau_xy
-            {
-                ax: 1 - txy, ay: 1.75,
-                axref: 'x', ayref: 'y',
-                x: 1 + txy, y: 1.75,
-                xref: 'x', yref: 'y',
-                showarrow: true,
-                arrowhead: 2,
-                arrowcolor: 'green'
-            },
-            {
-                ax: 1 + txy, ay: 0.25,
-                axref: 'x', ayref: 'y',
-                x: 1 - txy, y: 0.25,
-                xref: 'x', yref: 'y',
-                showarrow: true,
-                arrowhead: 2,
-                arrowcolor: 'green'
-            },
-            {
-                ax: 0.25, ay: 1 + txy,
-                axref: 'x', ayref: 'y',
-                x: 0.25, y: 1 - txy,
-                xref: 'x', yref: 'y',
-                showarrow: true,
-                arrowhead: 2,
-                arrowcolor: 'orange'
-            },
-            {
-                ax: 1.75, ay: 1 - txy,
-                axref: 'x', ayref: 'y',
-                x: 1.75, y: 1 + txy,
-                xref: 'x', yref: 'y',
-                showarrow: true,
-                arrowhead: 2,
-                arrowcolor: 'orange'
-            }
-        ]
-    };
-
-    Plotly.newPlot('stress-square', [square], layout);
 }
 
 function updatePlots() {
     const sigma_x = parseFloat(document.getElementById('sigma_x').value);
     const sigma_y = parseFloat(document.getElementById('sigma_y').value);
     const tau_xy = parseFloat(document.getElementById('tau_xy').value);
-    const degree = parseFloat(document.getElementById('theta').value);
-    plotMohrsCircle(sigma_x, sigma_y, tau_xy, degree);
-    plotStressSquare(sigma_x, sigma_y, tau_xy);
+
+    plotMohrsCircle(sigma_x, sigma_y, tau_xy);
 }
 
-document.getElementById('sigma_x').addEventListener('input', (e) => {
-    const value = parseFloat(e.target.value);
-    document.getElementById('sigma_x_val').value = value;
-    updatePlots();
-});
+// Synchronize range and number inputs
+function syncInputs(rangeId, numberId) {
+    document.getElementById(rangeId).addEventListener('input', (e) => {
+        document.getElementById(numberId).value = e.target.value;
+        updatePlots();
+    });
 
-document.getElementById('sigma_y').addEventListener('input', (e) => {
-    const value = parseFloat(e.target.value);
-    document.getElementById('sigma_y_val').value = value;
-    updatePlots();
-});
+    document.getElementById(numberId).addEventListener('input', (e) => {
+        document.getElementById(rangeId).value = e.target.value;
+        updatePlots();
+    });
+}
 
-document.getElementById('tau_xy').addEventListener('input', (e) => {
-    const value = parseFloat(e.target.value);
-    document.getElementById('tau_xy_val').value = value;
-    updatePlots();
-});
+// Initialize input synchronization
+syncInputs('sigma_x', 'sigma_x_val');
+syncInputs('sigma_y', 'sigma_y_val');
+syncInputs('tau_xy', 'tau_xy_val');
 
-document.getElementById('sigma_x_val').addEventListener('input', (e) => {
-    const value = parseFloat(e.target.value);
-    document.getElementById('sigma_x').value = value;
-    updatePlots();
-});
-
-document.getElementById('sigma_y_val').addEventListener('input', (e) => {
-    const value = parseFloat(e.target.value);
-    document.getElementById('sigma_y').value = value;
-    updatePlots();
-});
-
-document.getElementById('tau_xy_val').addEventListener('input', (e) => {
-    const value = parseFloat(e.target.value);
-    document.getElementById('tau_xy').value = value;
-    updatePlots();
-});
-
-document.getElementById('theta').addEventListener('input', (e) => {
-    const value = parseFloat(e.target.value);
-    document.getElementById('theta').value = value;
-    updatePlots();
-});
-
+// Initial plot
 updatePlots();
 </script>
 
